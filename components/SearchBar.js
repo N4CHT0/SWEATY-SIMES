@@ -17,8 +17,8 @@ const SearchBar = ({ onSearch }) => {
         value={searchText}
         onChangeText={text => setSearchText(text)}
       />
-      <TouchableOpacity style={styles.icon} onPress={handleSearch}>
-        <Icon name="search" size={18} color="white" />
+      <TouchableOpacity>
+        <Icon name="search" size={18} color="black" />
       </TouchableOpacity>
     </View>
   );
@@ -27,20 +27,16 @@ const SearchBar = ({ onSearch }) => {
 const styles = StyleSheet.create({
   container: {
     backgroundColor: 'white',
-    borderRadius: 10,
+    borderRadius: 30,
+    marginHorizontal: 20,
+    marginVertical: 20,
     padding: 20,
     flexDirection: 'row',
     alignItems: 'center',
   },
-  icon: {
-    padding: 10,
-    backgroundColor: '#98CA79',
-    borderRadius: 50,
-    marginLeft: 10,
-  },
   input: {
     flex: 1,
-    height: 50,
+    height: 35,
     borderColor: 'white',
     borderWidth: 1,
     borderRadius: 15,
