@@ -1,5 +1,5 @@
 import { useNavigation } from "@react-navigation/native";
-import React, { useState } from "react";
+import React, { useState,useEffect, } from "react";
 import {
     View,
     Text,
@@ -7,33 +7,62 @@ import {
     TouchableOpacity,
     StyleSheet,
     ScrollView,
-    TouchableWithoutFeedback
+    TouchableWithoutFeedback,
+    ActivityIndicator
 } from "react-native";
 import axios from 'axios';
 import { Category, DirectboxSend, Image, Notification, SearchNormal1 } from 'iconsax-react-native'
-import { fontType } from '../../theme';
-
-
-const AddExercises = () => {
-    const [loading, setLoading] = useState(false);
+import FastImage from 'react-native-fast-image';
+const EditExercises = ({route}) => {
+    const {exercisesId} = route.params;
     const [exercisesData, setexercisesData] = useState({
-        title: "",
-        description: "",
-        duration: "",
+        title: '',
+        description: '',
+        duration: '',
         totalLikes: 0,
         totalComments: 0,
-    });
-    const handleUpload = async () => {
+      });
+      const handleChange = (key, value) => {
+        setexercisesData({
+          ...exercisesData,
+          [key]: value,
+        });
+      };
+      const [image, setImage] = useState(null);
+      const navigation = useNavigation();
+      const [loading, setLoading] = useState(true);
+      useEffect(() => {
+        getPostById();
+      }, [exercisesId]);
+    
+      const getPostById = async () => {
+        try {
+          const response = await axios.get(
+            `https://656c291ce1e03bfd572e06b1.mockapi.io/exercises/${exercisesId}`,
+          );
+          setexercisesData({
+            title : response.data.title,
+            description : response.data.description,
+            duration : response.data.duration,
+            image : response.data.image,
+          })
+        setImage(response.data.image)
+          setLoading(false);
+        } catch (error) {
+          console.error(error);
+        }
+      };
+      const handleUpdate = async () => {
         setLoading(true);
         try {
-          await axios.post('https://656c291ce1e03bfd572e06b1.mockapi.io/exercises', {
+          await axios
+            .put(`https://656c291ce1e03bfd572e06b1.mockapi.io/exercises/${exercisesId}`, {
               title: exercisesData.title,
-              description: exercisesData.description,
-              duration: exercisesData.duration,
               image,
+              description: exercisesData.description,
+              duration : exercisesData.duration,
               totalComments: exercisesData.totalComments,
               totalLikes: exercisesData.totalLikes,
-              createdAt: new Date(),
             })
             .then(function (response) {
               console.log(response);
@@ -47,16 +76,8 @@ const AddExercises = () => {
           console.log(e);
         }
       };
-    const handleChange = (key, value) => {
-        setexercisesData({
-        ...exercisesData,
-        [key]: value,
-        });
-    };
-    const [image, setImage] = useState(null);
-    const navigation = useNavigation();
     return (
-        <View style={{flex:1}}>
+        <View style={{flex: 1,}}>
             <View style={{flexDirection: 'row',alignItems: 'center',padding: 20, justifyContent:'flex-end', gap: 28}}>
                     <TouchableWithoutFeedback onPress={() => navigation.navigate("Search")}>
                         <SearchNormal1 size="27" color="#2D2C2C"/>
@@ -83,7 +104,7 @@ const AddExercises = () => {
                 </View>
                 <View style={textInput.boardDescription}>
                     <TextInput
-                    placeholder="Deskripsi Latihan."
+                    placeholder="Deskripsi Latihan"
                     value={exercisesData.description}
                     onChangeText={(text) => handleChange("description", text)}
                     placeholderTextColor={'gray'}
@@ -93,7 +114,7 @@ const AddExercises = () => {
                 </View>
                 <View style={textInput.boardDescription}>
                     <TextInput
-                    placeholder="Durasi Latihan."
+                    placeholder="Durasi."
                     value={exercisesData.duration}
                     onChangeText={(text) => handleChange("duration", text)}
                     placeholderTextColor={'gray'}
@@ -104,7 +125,7 @@ const AddExercises = () => {
                 <View style={textInput.boardDescription}>
                     <TextInput
                     placeholder="URL."
-                    value={exercisesData.image}
+                    value={image}
                     onChangeText={(text) => setImage(text)}
                     placeholderTextColor={'gray'}
                     multiline
@@ -112,16 +133,37 @@ const AddExercises = () => {
                     />
                 </View>
             </ScrollView>
-            <TouchableOpacity onPress={handleUpload} style={{backgroundColor: '#3693F4',padding: 15, flexDirection: 'row',alignItems: 'center', gap: 12, marginHorizontal: 120, borderRadius: 14, position: 'absolute', top: 670,left:192}}>
+            <TouchableOpacity onPress={handleUpdate} style={styles.buttonUpload}>
                 <DirectboxSend variant="Bold" color="white" size={'30'}/>
             </TouchableOpacity>
+            {loading && (
+            <View style={styles.loadingOverlay}>
+            <ActivityIndicator size="large" color="blue" />
+            </View>
+            )}
         </View>
     )
 }
-
-export default AddExercises
-
-const styles = StyleSheet.create({})
+export default EditExercises
+const styles = StyleSheet.create({
+    image: {
+      height: 250,
+      width: 'auto',
+      borderRadius: 10,
+    },
+    buttonUpload:{
+        backgroundColor: '#3693F4',
+        padding: 15, 
+        flexDirection: 'row',
+        alignItems: 'center', 
+        gap: 12, 
+        marginHorizontal: 120, 
+        borderRadius: 14, 
+        position: 'absolute', 
+        top: 670,
+        left:192
+    }
+})
 const textInput = StyleSheet.create({
     title:{
         fontSize: 14,

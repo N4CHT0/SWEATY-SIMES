@@ -1,12 +1,10 @@
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View, Animated } from 'react-native';
-import React, { useState,useRef } from 'react';
-import Slider from '../../../components/Slider';
-import { useNavigation } from "@react-navigation/native";
-import SLIDER1 from '../../assets/images/SLIDER1.jpeg';
-import SLIDER2 from '../../assets/images/SLIDER2.jpeg';
-import SLIDER3 from '../../assets/images/SLIDER3.jpeg';
+import { ScrollView, StyleSheet, Text, TouchableOpacity,ActivityIndicator, View, Animated } from 'react-native';
+import React, { useState,useRef,useCallback } from 'react';
+import ExercisesItem from '../../../components/ExercisesItem';
+import { useNavigation,useFocusEffect } from "@react-navigation/native";
 import { fontType } from '../../theme';
 import { Category } from 'iconsax-react-native';
+import axios from 'axios';
 const Exercises = () => {
   const navigation = useNavigation();
   const scrollY = useRef(new Animated.Value(0)).current;
@@ -16,7 +14,33 @@ const Exercises = () => {
       outputRange: [0, -142],
       extrapolate: 'clamp',
     });
-  const [sliderImages] = useState([SLIDER1, SLIDER2, SLIDER3]);
+    const [loading, setLoading] = useState(true);
+    const [exercisesData, setExercisesData] = useState([]);
+    const [refreshing, setRefreshing] = useState(false);
+    const getDataExercises = async () => {
+      try {
+        const response = await axios.get(
+          'https://656c291ce1e03bfd572e06b1.mockapi.io/exercises',
+        );
+        setExercisesData(response.data);
+        setLoading(false)
+      } catch (error) {
+          console.error(error);
+      }
+    };
+    const onRefresh = useCallback(() => {
+      setRefreshing(true);
+      setTimeout(() => {
+        getDataExercises()
+        setRefreshing(false);
+      }, 1500);
+    }, []);
+  
+    useFocusEffect(
+      useCallback(() => {
+        getDataExercises();
+      }, [])
+    );
   return (
     <View>
 <Animated.ScrollView
@@ -49,8 +73,15 @@ const Exercises = () => {
           </View>
         </TouchableOpacity>
       </View>
-      <Slider images={sliderImages} />
-      <Slider images={sliderImages} />
+      <View style={styles.container}>    
+            <View style={styles.content}>
+              {loading ? (
+                <ActivityIndicator size={'large'} color={'black'}/>
+              ) : (
+                exercisesData.map((item, index) => <ExercisesItem item={item} key={index}/>)
+              )}
+            </View>
+          </View>
     </Animated.ScrollView>
     <TouchableOpacity style={{padding: 20, position:'absolute', top: 630,right: 20, backgroundColor:'white',borderRadius: 20}} onPress={() => navigation.navigate("AddExercises")}>
         <Category size="18"  color="#2D2C2C" variant='Linear'/>
@@ -59,4 +90,17 @@ const Exercises = () => {
   )
   }
 export default Exercises
-const styles = StyleSheet.create({})
+const styles = StyleSheet.create({
+  container:{
+    flexDirection: 'column',
+    marginVertical: 10,
+    justifyContent: 'center',
+    alignContent: 'center',
+    alignItems: 'center',
+  },
+  content: {
+    flexDirection: 'row',
+    flexWrap:'wrap',
+    justifyContent:'center'
+  },
+})
