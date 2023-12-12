@@ -63,7 +63,7 @@ const Login = () => {
         <View>
           <Text style={styles.header}>Log in</Text>
           <Text style={styles.caption}>
-            Let’s log in to your account and roll in to Woco!
+            Let’s log in to your account and Explore!
           </Text>
           <View style={styles.form}>
             <View>
