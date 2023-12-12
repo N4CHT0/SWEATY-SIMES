@@ -187,7 +187,7 @@ const textinput = StyleSheet.create({
     marginBottom: 5,
   },
   container: {
-    backgroundColor: 'gray',
+    backgroundColor: 'white',
     height: 52,
     justifyContent: 'center',
     paddingHorizontal: 10,

@@ -48,7 +48,7 @@ const MainApp = () => {
   }
   const Router = () => {
     return (
-      <Stack.Navigator initialRouteName="Splash">
+      <Stack.Navigator initialRouteName="Login">
         <Stack.Screen name="MainApp" component={MainApp} options={{ headerShown: false }} />
         <Stack.Screen name="Search" component={Search} options={{ headerShown: false }} />
         <Stack.Screen name="AddExercises" component={AddExercises} options={{ headerShown: false }} />
