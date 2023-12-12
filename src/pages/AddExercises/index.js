@@ -9,46 +9,67 @@ import {
     ScrollView,
     TouchableWithoutFeedback
 } from "react-native";
-import axios from 'axios';
-import { Category, DirectboxSend, Image, Notification, SearchNormal1 } from 'iconsax-react-native'
+import { Category, DirectboxSend, Image, Notification, SearchNormal1,AddSquare, Add } from 'iconsax-react-native'
 import { fontType } from '../../theme';
+import ImagePicker from 'react-native-image-crop-picker';
+import storage from '@react-native-firebase/storage';
+import firestore from '@react-native-firebase/firestore';
+import FastImage from "react-native-fast-image";
 
 
 const AddExercises = () => {
     const [loading, setLoading] = useState(false);
-    const [exercisesData, setexercisesData] = useState({
+    const [exercisesData, setExercisesData] = useState({
         title: "",
         description: "",
+        image: "",
         duration: "",
         totalLikes: 0,
         totalComments: 0,
+        createdAt: "",
     });
+    const handleImagePick = async () => {
+        ImagePicker.openPicker({
+          width: 1920,
+          height: 1080,
+          cropping: true,
+        })
+          .then(image => {
+            console.log(image);
+            setImage(image.path);
+          })
+          .catch(error => {
+            console.log(error);
+          });
+      };
     const handleUpload = async () => {
+        let filename = image.substring(image.lastIndexOf('/') + 1);
+        const extension = filename.split('.').pop();
+        const name = filename.split('.').slice(0, -1).join('.');
+        filename = name + Date.now() + '.' + extension;
+        const reference = storage().ref(`excersisesimage/${filename}`);
         setLoading(true);
         try {
-          await axios.post('https://656c291ce1e03bfd572e06b1.mockapi.io/exercises', {
-              title: exercisesData.title,
-              description: exercisesData.description,
-              duration: exercisesData.duration,
-              image,
-              totalComments: exercisesData.totalComments,
-              totalLikes: exercisesData.totalLikes,
-              createdAt: new Date(),
-            })
-            .then(function (response) {
-              console.log(response);
-            })
-            .catch(function (error) {
-              console.log(error);
-            });
-          setLoading(false);
-          navigation.navigate('Exercises');
-        } catch (e) {
-          console.log(e);
+        await reference.putFile(image);
+        const url = await reference.getDownloadURL();
+        await firestore().collection('exercises').add({
+            title: exercisesData.title,
+            description: exercisesData.description,
+            image: url,
+            duration: exercisesData.duration,
+            totalComments: exercisesData.totalComments,
+            totalLikes: exercisesData.totalLikes,
+            createdAt: new Date(),
+        });
+        setLoading(false);
+        console.log('Excercises added!');
+        navigation.navigate('Exercises');
+        } catch (error) {
+        console.log(error);
         }
-      };
+        };
     const handleChange = (key, value) => {
-        setexercisesData({
+        setExercisesData({
         ...exercisesData,
         [key]: value,
         });
@@ -66,11 +87,58 @@ const AddExercises = () => {
                     </TouchableWithoutFeedback>
                 </View>
             <ScrollView>
-                <TouchableOpacity>
-                    <View style={{padding: 120, marginHorizontal: 30,marginVertical: 10}}>
-                        <Image variant="Bold" color="#D1D1D1" size={'90'}/>
-                    </View>
-                </TouchableOpacity>
+            {image ? (
+          <View style={{position: 'relative'}}>
+            <FastImage
+              style={{width: '100%', height: 127, borderRadius: 5}}
+              source={{
+                uri: image,
+                headers: {Authorization: 'someAuthToken'},
+                priority: FastImage.priority.high,
+              }}
+              resizeMode={FastImage.resizeMode.cover}
+            />
+            <TouchableOpacity
+              style={{
+                position: 'absolute',
+                top: -5,
+                right: -5,
+                backgroundColor: 'blue',
+                borderRadius: 25,
+              }}
+              onPress={() => setImage(null)}>
+              <Add
+                size={20}
+                variant="Linear"
+                color="white"
+                style={{transform: [{rotate: '45deg'}]}}
+              />
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <TouchableOpacity onPress={handleImagePick}>
+            <View
+              style={[
+                textInput.borderDashed,
+                {
+                  gap: 10,
+                  paddingVertical: 30,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                },
+              ]}>
+              <AddSquare color="" variant="Linear" size={42} />
+              <Text
+                style={{
+                  fontFamily: fontType['PRM-Regular'],
+                  fontSize: 12,
+                  color: 'gray',
+                }}>
+                Upload Thumbnail
+              </Text>
+            </View>
+          </TouchableOpacity>
+        )}
                 <View style={textInput.board}>
                     <TextInput
                     placeholder="Nama Latihan"
@@ -96,16 +164,6 @@ const AddExercises = () => {
                     placeholder="Durasi Latihan."
                     value={exercisesData.duration}
                     onChangeText={(text) => handleChange("duration", text)}
-                    placeholderTextColor={'gray'}
-                    multiline
-                    style={textInput.title}
-                    />
-                </View>
-                <View style={textInput.boardDescription}>
-                    <TextInput
-                    placeholder="URL."
-                    value={exercisesData.image}
-                    onChangeText={(text) => setImage(text)}
                     placeholderTextColor={'gray'}
                     multiline
                     style={textInput.title}

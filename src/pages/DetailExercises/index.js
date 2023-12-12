@@ -5,8 +5,7 @@ import {useNavigation} from '@react-navigation/native';
 import FastImage from 'react-native-fast-image';
 import {formatNumber} from '../../utils/formatNumber';
 import {formatDate} from '../../utils/formatDate';
-import axios from 'axios';
-
+import firestore from '@react-native-firebase/firestore';
 const DetailExercises = ({route}) => {
   const {exercisesId} = route.params;
   const [iconStates, setIconStates] = useState({
@@ -15,7 +14,6 @@ const DetailExercises = ({route}) => {
   });
   const [selectedExercises, setSelectedExercises] = useState(null);
   const [loading, setLoading] = useState(true);
-
   const actionSheetRef = useRef(null);
   const [modalVisible, setModalVisible] = useState(false);
   const openActionSheet = () => {
@@ -25,37 +23,50 @@ const DetailExercises = ({route}) => {
   const closeActionSheet = () => {
     actionSheetRef.current?.hide();
   };
-
   useEffect(() => {
-    getExercisesById();
+    const subscriber = firestore()
+      .collection('exercises')
+      .doc(exercisesId)
+      .onSnapshot(documentSnapshot => {
+        const exercisesData = documentSnapshot.data();
+        if (exercisesData) {
+          console.log('Post data: ', exercisesData);
+          setSelectedExercises(exercisesData);
+        } else {
+          console.log(`Post with ID ${exercisesId} not found.`);
+        }
+      });
+    setLoading(false);
+    return () => subscriber();
   }, [exercisesId]);
-
-  const getExercisesById = async () => {
-    try {
-      const response = await axios.get(
-        `https://656c291ce1e03bfd572e06b1.mockapi.io/exercises/${exercisesId}`,
-      );
-      setSelectedExercises(response.data);
-      setLoading(false);
-    } catch (error) {
-      console.error(error);
-    }
-  };
 
   const navigateEdit = () => {
     closeActionSheet()
     navigation.navigate('EditExercises', {exercisesId})
   }
   const handleDelete = async () => {
-   await axios.delete(`https://656c291ce1e03bfd572e06b1.mockapi.io/exercises/${exercisesId}`)
-      .then(() => {
-        closeActionSheet()
-        navigation.navigate('Profile');
-      })
-      .catch((error) => {
-        console.error(error);
-      });
-  }
+    setLoading(true);
+    try {
+      await firestore()
+        .collection('exercises')
+        .doc(exercisesId)
+        .delete()
+        .then(() => {
+          console.log('Excercises deleted!');
+        });
+      if (selectedExercises?.image) {
+        const imageRef = storage().refFromURL(selectedExercises?.image);
+        await imageRef.delete();
+      }
+      console.log('Excercises deleted!');
+      closeActionSheet();
+      setSelectedExercises(null);
+      setLoading(false)
+      navigation.navigate('Profile');
+    } catch (error) {
+      console.error(error);
+    }
+  };
 
   const navigation = useNavigation();
   const scrollY = useRef(new Animated.Value(0)).current;
@@ -134,7 +145,6 @@ const DetailExercises = ({route}) => {
           </View>
           <Text style={styles.title}>{selectedExercises?.title}</Text>
           <Text style={styles.description}>{selectedExercises?.description}</Text>
-          <Text style={styles.description}>{selectedExercises?.duration}</Text>
         </Animated.ScrollView>
       )}
       <Animated.View

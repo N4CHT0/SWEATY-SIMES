@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "887226695746",
+    "project_id": "sweatysmile-3ed53",
+    "storage_bucket": "sweatysmile-3ed53.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:887226695746:android:2990dc9b1dad46667d6ddb",
+        "android_client_info": {
+          "package_name": "com.sweaty_smiles"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDvpzprKVCLadpLei_gMMaEyJkcBMfRKBo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

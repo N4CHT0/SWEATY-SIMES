@@ -1,10 +1,10 @@
-import { ScrollView, StyleSheet, Text, TouchableOpacity,ActivityIndicator, View, Animated } from 'react-native';
-import React, { useState,useRef,useCallback } from 'react';
+import { ScrollView, StyleSheet, Text, TouchableOpacity,ActivityIndicator, View, Animated,RefreshControl } from 'react-native';
+import React, { useState,useRef,useCallback,useEffect } from 'react';
 import ExercisesItem from '../../../components/ExercisesItem';
 import { useNavigation,useFocusEffect } from "@react-navigation/native";
 import { fontType } from '../../theme';
 import { Category } from 'iconsax-react-native';
-import axios from 'axios';
+import firestore from '@react-native-firebase/firestore'; 
 const Exercises = () => {
   const navigation = useNavigation();
   const scrollY = useRef(new Animated.Value(0)).current;
@@ -17,39 +17,52 @@ const Exercises = () => {
     const [loading, setLoading] = useState(true);
     const [exercisesData, setExercisesData] = useState([]);
     const [refreshing, setRefreshing] = useState(false);
-    const getDataExercises = async () => {
-      try {
-        const response = await axios.get(
-          'https://656c291ce1e03bfd572e06b1.mockapi.io/exercises',
-        );
-        setExercisesData(response.data);
-        setLoading(false)
-      } catch (error) {
-          console.error(error);
-      }
-    };
+    useEffect(() => {
+      const subscriber = firestore()
+        .collection('exercises')
+        .onSnapshot(querySnapshot => {
+          const excersises = [];
+          querySnapshot.forEach(documentSnapshot => {
+            excersises.push({
+              ...documentSnapshot.data(),
+              id: documentSnapshot.id,
+            });
+          });
+          setExercisesData(excersises);
+          setLoading(false);
+        });
+      return () => subscriber();
+    }, []);
     const onRefresh = useCallback(() => {
       setRefreshing(true);
       setTimeout(() => {
-        getDataExercises()
+        firestore()
+          .collection('excersises')
+          .onSnapshot(querySnapshot => {
+            const excersises = [];
+            querySnapshot.forEach(documentSnapshot => {
+              excersises.push({
+                ...documentSnapshot.data(),
+                id: documentSnapshot.id,
+              });
+            });
+            setExercisesData(exercisesData);
+          });
         setRefreshing(false);
       }, 1500);
     }, []);
-  
-    useFocusEffect(
-      useCallback(() => {
-        getDataExercises();
-      }, [])
-    );
   return (
     <View>
-<Animated.ScrollView
+    <Animated.ScrollView
         showsVerticalScrollIndicator={false}
         onScroll={Animated.event(
           [{nativeEvent: {contentOffset: {y: scrollY}}}],
           {useNativeDriver: true},
         )}
-        contentContainerStyle={{paddingTop: 1}}>
+        contentContainerStyle={{paddingTop: 1}}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }>
       <TouchableOpacity onPress={() => navigation.navigate("Search")}>
         <Animated.View style={{padding: 20,marginVertical: 10,borderRadius: 14,backgroundColor: 'white',marginHorizontal: 8,transform: [{translateY: recentY}]}}>
             <Text>Cari...</Text>

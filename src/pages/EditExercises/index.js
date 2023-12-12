@@ -10,9 +10,11 @@ import {
     TouchableWithoutFeedback,
     ActivityIndicator
 } from "react-native";
-import axios from 'axios';
-import { Category, DirectboxSend, Image, Notification, SearchNormal1 } from 'iconsax-react-native'
-import FastImage from 'react-native-fast-image';
+import ImagePicker from 'react-native-image-crop-picker';
+import firestore from '@react-native-firebase/firestore';
+import { Category, DirectboxSend, Image, Notification, SearchNormal1,Add,AddSquare } from 'iconsax-react-native'
+import FastImage from "react-native-fast-image";
+import { fontType } from "../../theme";
 const EditExercises = ({route}) => {
     const {exercisesId} = route.params;
     const [exercisesData, setexercisesData] = useState({
@@ -30,50 +32,75 @@ const EditExercises = ({route}) => {
       };
       const [image, setImage] = useState(null);
       const navigation = useNavigation();
+      const [oldImage, setOldImage] = useState(null);
       const [loading, setLoading] = useState(true);
       useEffect(() => {
-        getPostById();
+        const subscriber = firestore()
+          .collection('exercises')
+          .doc(exercisesId)
+          .onSnapshot(documentSnapshot => {
+            const exercisesData = documentSnapshot.data();
+            if (exercisesData) {
+              console.log('Exercises data: ', exercisesData);
+              setexercisesData({
+                title: exercisesData.title,
+                description: exercisesData.description,
+                duration: exercisesData.duration,
+              });
+              setOldImage(exercisesData.image);
+              setImage(exercisesData.image);
+              setLoading(false);
+            } else {
+              console.log(`Excercises with ID ${exercisesId} not found.`);
+            }
+          });
+        setLoading(false);
+        return () => subscriber();
       }, [exercisesId]);
     
-      const getPostById = async () => {
-        try {
-          const response = await axios.get(
-            `https://656c291ce1e03bfd572e06b1.mockapi.io/exercises/${exercisesId}`,
-          );
-          setexercisesData({
-            title : response.data.title,
-            description : response.data.description,
-            duration : response.data.duration,
-            image : response.data.image,
+      const handleImagePick = async () => {
+        ImagePicker.openPicker({
+          width: 1920,
+          height: 1080,
+          cropping: true,
+        })
+          .then(image => {
+            console.log(image);
+            setImage(image.path);
           })
-        setImage(response.data.image)
-          setLoading(false);
-        } catch (error) {
-          console.error(error);
-        }
+          .catch(error => {
+            console.log(error);
+          });
       };
+    
       const handleUpdate = async () => {
         setLoading(true);
+        let filename = image.substring(image.lastIndexOf('/') + 1);
+        const extension = filename.split('.').pop();
+        const name = filename.split('.').slice(0, -1).join('.');
+        filename = name + Date.now() + '.' + extension;
+        const reference = storage().ref(`blogimages/${filename}`);
         try {
-          await axios
-            .put(`https://656c291ce1e03bfd572e06b1.mockapi.io/exercises/${exercisesId}`, {
-              title: exercisesData.title,
-              image,
-              description: exercisesData.description,
-              duration : exercisesData.duration,
-              totalComments: exercisesData.totalComments,
-              totalLikes: exercisesData.totalLikes,
-            })
-            .then(function (response) {
-              console.log(response);
-            })
-            .catch(function (error) {
-              console.log(error);
-            });
+          if (image !== oldImage && oldImage) {
+            const oldImageRef = storage().refFromURL(oldImage);
+            await oldImageRef.delete();
+          }
+          if (image !== oldImage) {
+            await reference.putFile(image);
+          }
+          const url =
+            image !== oldImage ? await reference.getDownloadURL() : oldImage;
+          await firestore().collection('blog').doc(blogId).update({
+            title: exercisesData.title,
+            category: exercisesData.description,
+            image: url,
+            duration: exercisesData.duration,
+          });
           setLoading(false);
-          navigation.navigate('Exercises');
-        } catch (e) {
-          console.log(e);
+          console.log('Excercises Updated!');
+          navigation.navigate('Excercises', {exercisesId});
+        } catch (error) {
+          console.log(error);
         }
       };
     return (
@@ -87,11 +114,58 @@ const EditExercises = ({route}) => {
                     </TouchableWithoutFeedback>
                 </View>
             <ScrollView>
-                <TouchableOpacity>
-                    <View style={{padding: 120, marginHorizontal: 30,marginVertical: 10}}>
-                        <Image variant="Bold" color="#D1D1D1" size={'90'}/>
-                    </View>
-                </TouchableOpacity>
+            {image ? (
+          <View style={{position: 'relative'}}>
+            <FastImage
+              style={{width: '100%', height: 127, borderRadius: 5}}
+              source={{
+                uri: image,
+                headers: {Authorization: 'someAuthToken'},
+                priority: FastImage.priority.high,
+              }}
+              resizeMode={FastImage.resizeMode.cover}
+            />
+            <TouchableOpacity
+              style={{
+                position: 'absolute',
+                top: -5,
+                right: -5,
+                backgroundColor: 'blue',
+                borderRadius: 25,
+              }}
+              onPress={() => setImage(null)}>
+              <Add
+                size={20}
+                variant="Linear"
+                color="white"
+                style={{transform: [{rotate: '45deg'}]}}
+              />
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <TouchableOpacity onPress={handleImagePick}>
+            <View
+              style={[
+                textInput.borderDashed,
+                {
+                  gap: 10,
+                  paddingVertical: 30,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                },
+              ]}>
+              <AddSquare color="gray" variant="Linear" size={42} />
+              <Text
+                style={{
+                  fontFamily: fontType['PRM-Medium'],
+                  fontSize: 12,
+                  color: "gray",
+                }}>
+                Upload Thumbnail
+              </Text>
+            </View>
+          </TouchableOpacity>
+        )}
                 <View style={textInput.board}>
                     <TextInput
                     placeholder="Nama Latihan"
